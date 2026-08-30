@@ -16,9 +16,8 @@ PlasmoidItem {
     Layout.preferredWidth: 260
     Layout.preferredHeight: 130
 
-    // Ensure 100% transparent background on desktop (no solid/dark card background)
-    // Matches the approach used in minimalist desktop widgets like kde_minimalistclock
-    Plasmoid.backgroundHints: (Plasmoid.configuration.enableShadows ? PlasmaCore.Types.ShadowBackground : PlasmaCore.Types.NoBackground) | PlasmaCore.Types.ConfigurableBackground
+    // Force transparent background with no Plasma-provided container background
+    Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
 
     // -------------------------------------------------------------------------
     // THEME & COLORS
@@ -380,7 +379,7 @@ PlasmoidItem {
                 Layout.bottomMargin: 2
                 progress: root.countdownProgress
                 accentColor: root.accentColor
-                secondaryColor: root.secondaryColor
+                secondaryColor: root.secondaryTextColor
                 isCritical: root.urgencyState === "critical"
                 enableAnimations: Plasmoid.configuration.enableAnimations
             }

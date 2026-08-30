@@ -14,23 +14,8 @@ Kirigami.FormLayout {
     property alias cfg_countdownFontSize: countdownFontSizeSpin.value
     property alias cfg_detailsFontSize: detailsFontSizeSpin.value
     property alias cfg_uppercaseTitle: uppercaseTitleCheck.checked
-    property alias cfg_enableShadows: enableShadowsCheck.checked
     property alias cfg_urgentThresholdMinutes: urgentThresholdSpin.value
     property alias cfg_criticalThresholdMinutes: criticalThresholdSpin.value
-
-    // -------------------------------------------------------------------------
-    // BACKGROUND & RENDERING
-    // -------------------------------------------------------------------------
-    Kirigami.Separator {
-        Kirigami.FormData.isSection: true
-        Kirigami.FormData.label: i18n("Background & Effects")
-    }
-
-    CheckBox {
-        id: enableShadowsCheck
-        Kirigami.FormData.label: i18n("Shadow Effect:")
-        text: i18n("Enable Plasma drop shadows behind transparent widget")
-    }
 
     // -------------------------------------------------------------------------
     // PALETTE & COLORS
