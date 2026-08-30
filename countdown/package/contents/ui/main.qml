@@ -18,6 +18,7 @@ PlasmoidItem {
 
     // Force transparent background with no Plasma-provided container background
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
+    preferredRepresentation: fullRepresentation
 
     // -------------------------------------------------------------------------
     // THEME & COLORS
@@ -200,31 +201,6 @@ PlasmoidItem {
         function onStartDateChanged() { root.updateCountdown(); }
         function onStartTimeChanged() { root.updateCountdown(); }
         function onShowSecondsChanged() { root.updateCountdown(); }
-    }
-
-    // -------------------------------------------------------------------------
-    // COMPACT REPRESENTATION (FOR PANELS)
-    // -------------------------------------------------------------------------
-    compactRepresentation: Item {
-        Layout.minimumWidth: compactText.implicitWidth + 8
-        Layout.minimumHeight: compactText.implicitHeight + 4
-
-        Text {
-            id: compactText
-            anchors.centerIn: parent
-            text: {
-                if (root.isCompleted) {
-                    return "00:00";
-                }
-                if (root.daysRemaining > 0) {
-                    return root.padZero(root.daysRemaining) + "d " + root.padZero(root.hoursRemaining) + ":" + root.padZero(root.minutesRemaining);
-                }
-                return root.padZero(root.hoursRemaining) + ":" + root.padZero(root.minutesRemaining) + (Plasmoid.configuration.showSeconds ? (":" + root.padZero(root.secondsRemaining)) : "");
-            }
-            font.bold: true
-            font.pixelSize: 12
-            color: root.urgencyState === "critical" ? root.accentColor : root.primaryTextColor
-        }
     }
 
     // -------------------------------------------------------------------------
