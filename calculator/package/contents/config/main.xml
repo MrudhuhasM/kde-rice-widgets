@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <entry name="showTitle" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="title" type="String">
+      <default>FIELD CALCULATOR</default>
+    </entry>
+    <entry name="uppercaseTitle" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showHistory" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="maxHistoryItems" type="Int">
+      <default>5</default>
+    </entry>
+    <entry name="resultPrecision" type="Int">
+      <default>10</default>
+    </entry>
+    <entry name="enableAnimations" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="accentColor" type="String">
+      <default>#B72B2B</default>
+    </entry>
+    <entry name="customTextColor" type="String">
+      <default></default>
+    </entry>
+    <entry name="customSecondaryColor" type="String">
+      <default></default>
+    </entry>
+    <entry name="titleFontSize" type="Int">
+      <default>10</default>
+    </entry>
+    <entry name="expressionFontSize" type="Int">
+      <default>14</default>
+    </entry>
+    <entry name="resultFontSize" type="Int">
+      <default>28</default>
+    </entry>
+    <entry name="buttonFontSize" type="Int">
+      <default>14</default>
+    </entry>
+  </group>
+</kcfg>

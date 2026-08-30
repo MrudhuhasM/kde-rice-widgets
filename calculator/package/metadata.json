@@ -1,0 +1,20 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "mrudhuhas@example.com",
+                "Name": "Mrudhuhas"
+            }
+        ],
+        "Category": "Utilities",
+        "Description": "Minimal Attack on Titan-inspired military desktop calculator",
+        "Icon": "accessories-calculator",
+        "Id": "com.mrudhuhas.calculator",
+        "License": "MIT",
+        "Name": "Calculator",
+        "Version": "1.0.0",
+        "Website": "https://github.com/mrudhuhas/rice-plasma-widgets"
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
