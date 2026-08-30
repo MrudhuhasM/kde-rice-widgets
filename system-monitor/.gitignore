@@ -1,0 +1,16 @@
+# KDE / Plasma / Qt build and cache artifacts
+*.qmlc
+*.jsc
+*.kdev4
+build/
+
+# Editor files
+.vscode/
+.idea/
+*.kate-swp
+*~
+*.swp
+
+# OS generated
+.DS_Store
+Thumbs.db

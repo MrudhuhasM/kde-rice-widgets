@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+  <group name="General">
+    <entry name="showTitle" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="title" type="String">
+      <default>SYSTEM STATUS</default>
+    </entry>
+    <entry name="uppercaseTitle" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showCpu" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showRam" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showNetwork" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showRamUsedTotal" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showPercentages" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="updateInterval" type="Int">
+      <default>1</default>
+    </entry>
+    <entry name="enableAnimations" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="cpuWarningThreshold" type="Int">
+      <default>80</default>
+    </entry>
+    <entry name="ramWarningThreshold" type="Int">
+      <default>85</default>
+    </entry>
+    <entry name="enableWarningAccent" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="accentColor" type="String">
+      <default>#B72B2B</default>
+    </entry>
+    <entry name="customTextColor" type="String">
+      <default></default>
+    </entry>
+    <entry name="customSecondaryColor" type="String">
+      <default></default>
+    </entry>
+    <entry name="titleFontSize" type="Int">
+      <default>10</default>
+    </entry>
+    <entry name="metricLabelFontSize" type="Int">
+      <default>11</default>
+    </entry>
+    <entry name="metricValueFontSize" type="Int">
+      <default>12</default>
+    </entry>
+    <entry name="secondaryFontSize" type="Int">
+      <default>10</default>
+    </entry>
+    <entry name="barThickness" type="Int">
+      <default>2</default>
+    </entry>
+  </group>
+</kcfg>
