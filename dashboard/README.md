@@ -21,6 +21,15 @@ Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
 preferredRepresentation: fullRepresentation   // compactRepresentation is NOT defined
 ```
 
+## Typography
+
+Two font roles. **Display** — the clock digits only — uses a configurable
+dot-matrix family (`NDot 57` by default, `Appearance → Display font`); the `:`
+is drawn as stacked dots in QML so it never depends on the font, and the family
+falls back to `monospace` when it is not installed. **Body** — everything else
+(dates, media metadata, system labels and values) — uses the Plasma system font.
+No proprietary font is bundled.
+
 ## Data sources
 
 | Module | Mechanism |

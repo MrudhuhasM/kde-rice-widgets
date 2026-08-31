@@ -1,6 +1,17 @@
+// Countdown — com.mrudhuhas.countdown
+// A Nothing-inspired countdown instrument. Hero = remaining time in the
+// DISPLAY font; a segmented dot timeline shows real elapsed progress.
+// The hierarchy adapts to the remaining scale (days / hours / minutes).
+//
+// TRANSPARENCY CONTRACT (unchanged):
+//   Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
+//   preferredRepresentation: fullRepresentation   (no compactRepresentation)
+//
+// All date / progress / urgency math below is preserved from the previous
+// implementation — only the presentation is new.
+
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
@@ -10,183 +21,146 @@ import "components"
 PlasmoidItem {
     id: root
 
-    // Desktop widget sizing hints
-    Layout.minimumWidth: 160
-    Layout.minimumHeight: 75
-    Layout.preferredWidth: 260
-    Layout.preferredHeight: 130
+    Layout.minimumWidth: 180
+    Layout.minimumHeight: 120
+    Layout.preferredWidth: 300
+    Layout.preferredHeight: 190
 
-    // Force transparent background with no Plasma-provided container background
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
     preferredRepresentation: fullRepresentation
 
-    // -------------------------------------------------------------------------
-    // THEME & COLORS
-    // -------------------------------------------------------------------------
+    // ── Palette ─────────────────────────────────────────────────────────────
     readonly property color primaryTextColor: {
-        if (Plasmoid.configuration.customTextColor && Plasmoid.configuration.customTextColor !== "") {
-            return Plasmoid.configuration.customTextColor;
-        }
-        return Kirigami.Theme.textColor ? Kirigami.Theme.textColor : "#ECEFF4";
+        const c = Plasmoid.configuration.customTextColor
+        return (c && c !== "") ? c : (Kirigami.Theme.textColor || "#ECEFF4")
     }
-
     readonly property color secondaryTextColor: {
-        if (Plasmoid.configuration.customSecondaryColor && Plasmoid.configuration.customSecondaryColor !== "") {
-            return Plasmoid.configuration.customSecondaryColor;
-        }
-        return Kirigami.Theme.disabledTextColor ? Kirigami.Theme.disabledTextColor : "#7B889B";
+        const c = Plasmoid.configuration.customSecondaryColor
+        return (c && c !== "") ? c : (Kirigami.Theme.disabledTextColor || "#7B889B")
     }
-
     readonly property color accentColor: {
-        if (Plasmoid.configuration.accentColor && Plasmoid.configuration.accentColor !== "") {
-            return Plasmoid.configuration.accentColor;
-        }
-        return "#B72B2B"; // Restrained crimson
+        const c = Plasmoid.configuration.accentColor
+        return (c && c !== "") ? c : "#D71920"
     }
 
-    // -------------------------------------------------------------------------
-    // STATE & TIME PROPERTIES
-    // -------------------------------------------------------------------------
+    // ── Typography ──────────────────────────────────────────────────────────
+    readonly property string bodyFont: Kirigami.Theme.defaultFont.family
+    function _fontAvailable(f) { return f && f.length > 0 && Qt.fontFamilies().indexOf(f) !== -1 }
+    readonly property string displayFont: {
+        if (Plasmoid.configuration.useDisplayFont === false) return "monospace"
+        const want = (Plasmoid.configuration.displayFont || "").trim()
+        const cands = want.length ? [want, want.replace(" ", ""), want.replace("NDot", "Ndot")] : []
+        for (let i = 0; i < cands.length; ++i) if (root._fontAvailable(cands[i])) return cands[i]
+        return "monospace"
+    }
+
+    readonly property bool enableAnimations: Plasmoid.configuration.enableAnimations !== false
+
+    // ── State (preserved) ───────────────────────────────────────────────────
     property int daysRemaining: 0
     property int hoursRemaining: 0
     property int minutesRemaining: 0
     property int secondsRemaining: 0
+    property int totalSecondsRemaining: 0
     property bool isCompleted: false
     property real countdownProgress: 0.0
-    property string urgencyState: "normal" // "normal" | "urgent" | "critical" | "completed"
+    property string urgencyState: "normal"      // normal | urgent | critical | completed
+    property string targetPrefix: "UNTIL"
     property string targetFormattedString: ""
 
-    // -------------------------------------------------------------------------
-    // COUNTDOWN ENGINE
-    // -------------------------------------------------------------------------
-    function padZero(num) {
-        return (num < 10 ? "0" : "") + num;
-    }
+    function padZero(n) { return (n < 10 ? "0" : "") + n }
 
+    // ── Date parsing (preserved verbatim) ───────────────────────────────────
     function parseTargetDate() {
-        let dStr = Plasmoid.configuration.targetDate;
-        let tStr = Plasmoid.configuration.targetTime || "18:00:00";
-
+        let dStr = Plasmoid.configuration.targetDate
+        let tStr = Plasmoid.configuration.targetTime || "18:00:00"
         if (!dStr || dStr.trim() === "") {
-            let def = new Date();
-            def.setDate(def.getDate() + 1);
-            let y = def.getFullYear();
-            let m = padZero(def.getMonth() + 1);
-            let d = padZero(def.getDate());
-            dStr = y + "-" + m + "-" + d;
+            let def = new Date()
+            def.setDate(def.getDate() + 1)
+            dStr = def.getFullYear() + "-" + padZero(def.getMonth() + 1) + "-" + padZero(def.getDate())
         }
-
-        let timeParts = tStr.split(":");
-        let hours = parseInt(timeParts[0] || "0", 10);
-        let minutes = parseInt(timeParts[1] || "0", 10);
-        let seconds = parseInt(timeParts[2] || "0", 10);
-
-        let dateParts = dStr.split("-");
-        if (dateParts.length === 3) {
-            let year = parseInt(dateParts[0], 10);
-            let month = parseInt(dateParts[1], 10) - 1;
-            let day = parseInt(dateParts[2], 10);
-            return new Date(year, month, day, hours, minutes, seconds);
+        let tp = tStr.split(":")
+        let hours = parseInt(tp[0] || "0", 10)
+        let minutes = parseInt(tp[1] || "0", 10)
+        let seconds = parseInt(tp[2] || "0", 10)
+        let dp = dStr.split("-")
+        if (dp.length === 3) {
+            return new Date(parseInt(dp[0], 10), parseInt(dp[1], 10) - 1, parseInt(dp[2], 10),
+                            hours, minutes, seconds)
         }
-
-        let fallback = new Date(dStr + "T" + tStr);
-        return isNaN(fallback.getTime()) ? new Date(Date.now() + 3600000) : fallback;
+        let fallback = new Date(dStr + "T" + tStr)
+        return isNaN(fallback.getTime()) ? new Date(Date.now() + 3600000) : fallback
     }
 
     function parseStartDate(targetDateObj) {
-        let sDateStr = Plasmoid.configuration.startDate;
-        let sTimeStr = Plasmoid.configuration.startTime;
-
+        let sDateStr = Plasmoid.configuration.startDate
+        let sTimeStr = Plasmoid.configuration.startTime
         if (sDateStr && sDateStr.trim() !== "") {
-            let timeParts = (sTimeStr || "00:00:00").split(":");
-            let hours = parseInt(timeParts[0] || "0", 10);
-            let minutes = parseInt(timeParts[1] || "0", 10);
-            let seconds = parseInt(timeParts[2] || "0", 10);
-
-            let dateParts = sDateStr.split("-");
-            if (dateParts.length === 3) {
-                let year = parseInt(dateParts[0], 10);
-                let month = parseInt(dateParts[1], 10) - 1;
-                let day = parseInt(dateParts[2], 10);
-                let parsed = new Date(year, month, day, hours, minutes, seconds);
-                if (!isNaN(parsed.getTime()) && parsed.getTime() < targetDateObj.getTime()) {
-                    return parsed;
-                }
+            let tp = (sTimeStr || "00:00:00").split(":")
+            let hours = parseInt(tp[0] || "0", 10)
+            let minutes = parseInt(tp[1] || "0", 10)
+            let seconds = parseInt(tp[2] || "0", 10)
+            let dp = sDateStr.split("-")
+            if (dp.length === 3) {
+                let parsed = new Date(parseInt(dp[0], 10), parseInt(dp[1], 10) - 1, parseInt(dp[2], 10),
+                                      hours, minutes, seconds)
+                if (!isNaN(parsed.getTime()) && parsed.getTime() < targetDateObj.getTime()) return parsed
             }
         }
-
-        return new Date(targetDateObj.getTime() - 86400000);
+        return new Date(targetDateObj.getTime() - 86400000)
     }
 
-    function formatTargetDisplay(targetDateObj, now) {
-        let isToday = (targetDateObj.getFullYear() === now.getFullYear() &&
-                       targetDateObj.getMonth() === now.getMonth() &&
-                       targetDateObj.getDate() === now.getDate());
-
-        let timeStr = padZero(targetDateObj.getHours()) + ":" + padZero(targetDateObj.getMinutes());
-
-        if (isToday) {
-            return "UNTIL " + timeStr;
-        }
-
-        const months = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
-                        "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
-        let monthName = months[targetDateObj.getMonth()] || "";
-        return padZero(targetDateObj.getDate()) + " " + monthName + " · " + timeStr;
+    function formatTarget(targetDateObj, now) {
+        const months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"]
+        let isToday = targetDateObj.getFullYear() === now.getFullYear()
+                   && targetDateObj.getMonth() === now.getMonth()
+                   && targetDateObj.getDate() === now.getDate()
+        let timeStr = padZero(targetDateObj.getHours()) + ":" + padZero(targetDateObj.getMinutes())
+        root.targetPrefix = isToday ? "TODAY" : "UNTIL"
+        return isToday
+            ? timeStr
+            : padZero(targetDateObj.getDate()) + " " + months[targetDateObj.getMonth()] + "  ·  " + timeStr
     }
 
+    // ── Countdown engine (preserved) ────────────────────────────────────────
     function updateCountdown() {
-        let now = new Date();
-        let target = parseTargetDate();
-        let start = parseStartDate(target);
+        let now = new Date()
+        let target = parseTargetDate()
+        let start = parseStartDate(target)
+        let diffMs = target.getTime() - now.getTime()
 
-        let diffMs = target.getTime() - now.getTime();
-
-        root.targetFormattedString = formatTargetDisplay(target, now);
+        root.targetFormattedString = formatTarget(target, now)
 
         if (diffMs <= 0) {
-            root.isCompleted = true;
-            root.daysRemaining = 0;
-            root.hoursRemaining = 0;
-            root.minutesRemaining = 0;
-            root.secondsRemaining = 0;
-            root.countdownProgress = 1.0;
-            root.urgencyState = "completed";
-            return;
+            root.isCompleted = true
+            root.daysRemaining = root.hoursRemaining = root.minutesRemaining = root.secondsRemaining = 0
+            root.totalSecondsRemaining = 0
+            root.countdownProgress = 1.0
+            root.urgencyState = "completed"
+            return
         }
+        root.isCompleted = false
 
-        root.isCompleted = false;
+        let totalSeconds = Math.floor(diffMs / 1000)
+        root.totalSecondsRemaining = totalSeconds
+        root.daysRemaining = Math.floor(totalSeconds / 86400)
+        root.hoursRemaining = Math.floor((totalSeconds % 86400) / 3600)
+        root.minutesRemaining = Math.floor((totalSeconds % 3600) / 60)
+        root.secondsRemaining = totalSeconds % 60
 
-        let totalSeconds = Math.floor(diffMs / 1000);
-        root.daysRemaining = Math.floor(totalSeconds / 86400);
-        root.hoursRemaining = Math.floor((totalSeconds % 86400) / 3600);
-        root.minutesRemaining = Math.floor((totalSeconds % 3600) / 60);
-        root.secondsRemaining = totalSeconds % 60;
+        let totalSpan = target.getTime() - start.getTime()
+        let elapsed = now.getTime() - start.getTime()
+        root.countdownProgress = totalSpan > 0
+            ? Math.max(0.0, Math.min(1.0, elapsed / totalSpan)) : 0.0
 
-        let totalSpan = target.getTime() - start.getTime();
-        let elapsed = now.getTime() - start.getTime();
-        if (totalSpan > 0) {
-            root.countdownProgress = Math.max(0.0, Math.min(1.0, elapsed / totalSpan));
-        } else {
-            root.countdownProgress = 0.0;
-        }
-
-        let totalMinutesRemaining = diffMs / 60000;
-        let critThreshold = Plasmoid.configuration.criticalThresholdMinutes || 1;
-        let urgThreshold = Plasmoid.configuration.urgentThresholdMinutes || 10;
-
-        if (totalMinutesRemaining <= critThreshold) {
-            root.urgencyState = "critical";
-        } else if (totalMinutesRemaining <= urgThreshold) {
-            root.urgencyState = "urgent";
-        } else {
-            root.urgencyState = "normal";
-        }
+        let minutesLeft = diffMs / 60000
+        let crit = Plasmoid.configuration.criticalThresholdMinutes || 1
+        let urg = Plasmoid.configuration.urgentThresholdMinutes || 10
+        root.urgencyState = minutesLeft <= crit ? "critical"
+                          : minutesLeft <= urg  ? "urgent" : "normal"
     }
 
-    // Refresh timer
     Timer {
-        id: updateTimer
         interval: Plasmoid.configuration.showSeconds ? 1000 : 5000
         running: true
         repeat: true
@@ -196,181 +170,150 @@ PlasmoidItem {
 
     Connections {
         target: Plasmoid.configuration
-        function onTargetDateChanged() { root.updateCountdown(); }
-        function onTargetTimeChanged() { root.updateCountdown(); }
-        function onStartDateChanged() { root.updateCountdown(); }
-        function onStartTimeChanged() { root.updateCountdown(); }
-        function onShowSecondsChanged() { root.updateCountdown(); }
+        function onTargetDateChanged() { root.updateCountdown() }
+        function onTargetTimeChanged() { root.updateCountdown() }
+        function onStartDateChanged() { root.updateCountdown() }
+        function onStartTimeChanged() { root.updateCountdown() }
+        function onShowSecondsChanged() { root.updateCountdown() }
     }
 
-    // -------------------------------------------------------------------------
-    // FULL REPRESENTATION (DESKTOP WIDGET)
-    // -------------------------------------------------------------------------
+    // ── Derived presentation ────────────────────────────────────────────────
+    readonly property bool _showSeconds: Plasmoid.configuration.showSeconds !== false
+    readonly property bool _hasDays: root.daysRemaining > 0 && !root.isCompleted
+
+    // Hero string, adapts to remaining scale.
+    readonly property string heroText: {
+        if (root.isCompleted) {
+            const raw = Plasmoid.configuration.completedText || "COMPLETE"
+            return raw.toUpperCase()
+        }
+        const t = root.totalSecondsRemaining
+        const hh = root.padZero(root.hoursRemaining)
+        const mm = root.padZero(root.minutesRemaining)
+        const ss = root.padZero(root.secondsRemaining)
+        if (t < 3600) return mm + ":" + ss                 // final hour  -> MM:SS
+        return root._showSeconds ? hh + ":" + mm + ":" + ss // has hours   -> HH:MM:SS
+                                 : hh + ":" + mm
+    }
+
+    // Hero size: base, enlarged for the shorter forms.
+    readonly property int heroBase: Plasmoid.configuration.countdownFontSize || 34
+    readonly property int heroSize: {
+        if (root.isCompleted) return Math.round(root.heroBase * 0.9)
+        if (root.totalSecondsRemaining < 60)   return Math.round(root.heroBase * 1.30)
+        if (root.totalSecondsRemaining < 3600) return Math.round(root.heroBase * 1.15)
+        return root.heroBase
+    }
+    readonly property color heroColor:
+        root.urgencyState === "critical" ? root.accentColor : root.primaryTextColor
+
+    readonly property bool _finalMinutePulse:
+        !root.isCompleted && root.totalSecondsRemaining < 60 && root.enableAnimations
+
+    // ── Full representation ─────────────────────────────────────────────────
     fullRepresentation: Item {
-        id: desktopRepresentation
-        Layout.minimumWidth: 160
-        Layout.minimumHeight: 75
-        Layout.preferredWidth: 260
-        Layout.preferredHeight: 130
+        id: view
+        Layout.minimumWidth: 180
+        Layout.minimumHeight: 120
+        Layout.preferredWidth: 300
+        Layout.preferredHeight: 190
+
+        readonly property int metaFont: Plasmoid.configuration.detailsFontSize || 10
+        readonly property int labelFont: Plasmoid.configuration.titleFontSize || 10
 
         ColumnLayout {
-            id: mainLayout
+            id: col
             anchors.centerIn: parent
-            width: Math.min(parent.width, 320)
-            spacing: 4
+            width: Math.min(parent.width, 380)
+            spacing: 6
 
-            // 1. TITLE / OBJECTIVE HEADER
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 6
-
-                Rectangle {
-                    width: 12
-                    height: 1
-                    color: root.urgencyState === "critical" || root.urgencyState === "urgent" ? root.accentColor : root.secondaryTextColor
-                    opacity: 0.5
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                Text {
-                    id: titleLabel
-                    text: {
-                        if (root.isCompleted) {
-                            return Plasmoid.configuration.completedText || "OBJECTIVE COMPLETE";
-                        }
-                        let raw = Plasmoid.configuration.title || "MISSION ENDS IN";
-                        return Plasmoid.configuration.uppercaseTitle ? raw.toUpperCase() : raw;
-                    }
-                    font.pixelSize: Plasmoid.configuration.titleFontSize || 10
-                    font.capitalization: Plasmoid.configuration.uppercaseTitle ? Font.AllUppercase : Font.MixedCase
-                    font.letterSpacing: 1.8
-                    font.bold: true
-                    color: root.isCompleted ? root.accentColor : (root.urgencyState === "critical" ? root.accentColor : root.secondaryTextColor)
-                    horizontalAlignment: Text.AlignHCenter
-                }
-
-                Rectangle {
-                    width: 12
-                    height: 1
-                    color: root.urgencyState === "critical" || root.urgencyState === "urgent" ? root.accentColor : root.secondaryTextColor
-                    opacity: 0.5
-                    Layout.alignment: Qt.AlignVCenter
-                }
-            }
-
-            // 2. MULTI-DAY BADGE (Displayed only when days > 0)
-            Item {
-                id: daysContainer
-                visible: root.daysRemaining > 0 && !root.isCompleted
-                Layout.alignment: Qt.AlignHCenter
-                implicitWidth: daysContentRow.implicitWidth
-                implicitHeight: visible ? daysContentRow.implicitHeight + 2 : 0
-
-                RowLayout {
-                    id: daysContentRow
-                    anchors.centerIn: parent
-                    spacing: 6
-
-                    AnimatedValue {
-                        text: root.padZero(root.daysRemaining)
-                        font.pixelSize: Math.round((Plasmoid.configuration.countdownFontSize || 28) * 0.75)
-                        font.bold: true
-                        font.letterSpacing: 1.2
-                        color: root.primaryTextColor
-                        enableAnimations: Plasmoid.configuration.enableAnimations
-                    }
-
-                    Text {
-                        text: root.daysRemaining === 1 ? "DAY" : "DAYS"
-                        font.pixelSize: Math.round((Plasmoid.configuration.titleFontSize || 10) * 1.1)
-                        font.letterSpacing: 1.5
-                        font.bold: true
-                        color: root.accentColor
-                        Layout.alignment: Qt.AlignVCenter
-                    }
-                }
-            }
-
-            // 3. MAIN COUNTDOWN DIGITS (HH : MM : SS)
-            RowLayout {
-                id: timeRow
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 4
-
-                AnimatedValue {
-                    text: root.padZero(root.hoursRemaining)
-                    font.pixelSize: Plasmoid.configuration.countdownFontSize || 28
-                    font.bold: true
-                    font.letterSpacing: 1.0
-                    color: root.isCompleted ? root.secondaryTextColor : root.primaryTextColor
-                    enableAnimations: Plasmoid.configuration.enableAnimations
-                }
-
-                Text {
-                    text: ":"
-                    font.pixelSize: Math.round((Plasmoid.configuration.countdownFontSize || 28) * 0.85)
-                    font.bold: true
-                    color: root.urgencyState === "critical" ? root.accentColor : root.secondaryTextColor
-                    opacity: 0.7
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                AnimatedValue {
-                    text: root.padZero(root.minutesRemaining)
-                    font.pixelSize: Plasmoid.configuration.countdownFontSize || 28
-                    font.bold: true
-                    font.letterSpacing: 1.0
-                    color: root.isCompleted ? root.secondaryTextColor : root.primaryTextColor
-                    enableAnimations: Plasmoid.configuration.enableAnimations
-                }
-
-                Text {
-                    visible: Plasmoid.configuration.showSeconds
-                    text: ":"
-                    font.pixelSize: Math.round((Plasmoid.configuration.countdownFontSize || 28) * 0.85)
-                    font.bold: true
-                    color: root.urgencyState === "critical" ? root.accentColor : root.secondaryTextColor
-                    opacity: 0.7
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
-                AnimatedValue {
-                    visible: Plasmoid.configuration.showSeconds
-                    text: root.padZero(root.secondsRemaining)
-                    font.pixelSize: Plasmoid.configuration.countdownFontSize || 28
-                    font.bold: true
-                    font.letterSpacing: 1.0
-                    color: root.urgencyState === "critical" ? root.accentColor : (root.isCompleted ? root.secondaryTextColor : root.primaryTextColor)
-                    enableAnimations: Plasmoid.configuration.enableAnimations
-                }
-            }
-
-            // 4. PROGRESS / SEPARATOR LINE
-            ProgressLine {
-                id: progressSeparator
-                visible: Plasmoid.configuration.showProgressLine
+            // 1 · target block — restrained, body font
+            ColumnLayout {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 10
-                Layout.topMargin: 2
-                Layout.bottomMargin: 2
-                progress: root.countdownProgress
-                accentColor: root.accentColor
-                secondaryColor: root.secondaryTextColor
-                isCritical: root.urgencyState === "critical"
-                enableAnimations: Plasmoid.configuration.enableAnimations
+                spacing: 1
+                visible: Plasmoid.configuration.showTargetDateTime !== false
+
+                Text {
+                    text: root.isCompleted ? "" : root.targetPrefix
+                    visible: text.length > 0
+                    font.family: root.bodyFont
+                    font.pixelSize: Math.max(8, view.labelFont - 1)
+                    font.letterSpacing: 3.0
+                    font.capitalization: Font.AllUppercase
+                    color: root.secondaryTextColor
+                    opacity: 0.75
+                }
+                Text {
+                    text: root.targetFormattedString
+                    visible: !root.isCompleted && text.length > 0
+                    font.family: root.bodyFont
+                    font.pixelSize: view.metaFont + 1
+                    font.letterSpacing: 1.6
+                    color: root.secondaryTextColor
+                }
             }
 
-            // 5. TARGET DATE / TIME FOOTER
-            Text {
-                id: targetDateLabel
-                visible: Plasmoid.configuration.showTargetDateTime && root.targetFormattedString !== ""
-                text: root.targetFormattedString
-                font.pixelSize: Plasmoid.configuration.detailsFontSize || 10
-                font.letterSpacing: 1.4
-                color: root.secondaryTextColor
-                Layout.alignment: Qt.AlignHCenter
-                horizontalAlignment: Text.AlignHCenter
-                opacity: 0.85
+            // 2 · days line (only when >= 1 day)
+            RowLayout {
+                visible: root._hasDays
+                Layout.topMargin: 2
+                spacing: 8
+
+                DisplayValue {
+                    text: root.padZero(root.daysRemaining)
+                    pixelSize: Math.round(root.heroBase * 0.7)
+                    color: root.primaryTextColor
+                    separatorColor: root.accentColor
+                    displayFamily: root.displayFont
+                    bodyFamily: root.bodyFont
+                }
+                Text {
+                    text: root.daysRemaining === 1 ? "DAY" : "DAYS"
+                    font.family: root.bodyFont
+                    font.pixelSize: Math.max(9, view.labelFont)
+                    font.letterSpacing: 2.5
+                    font.bold: true
+                    color: root.accentColor
+                    Layout.alignment: Qt.AlignVCenter
+                }
+            }
+
+            // 3 · HERO remaining time / completion word
+            CountdownDigits {
+                id: hero
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.heroSize * 1.15
+                text: root.heroText
+                pixelSize: root.heroSize
+                color: root.heroColor
+                separatorColor: root.urgencyState === "normal" ? root.secondaryTextColor : root.accentColor
+                displayFamily: root.displayFont
+                bodyFamily: root.bodyFont
+                enableAnimations: root.enableAnimations
+                horizontalAlignment: Qt.AlignLeft
+
+                opacity: 1.0
+                SequentialAnimation on opacity {
+                    running: root._finalMinutePulse
+                    loops: Animation.Infinite
+                    onRunningChanged: if (!running) hero.opacity = 1.0
+                    NumberAnimation { to: 0.45; duration: 700; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1.0;  duration: 700; easing.type: Easing.InOutSine }
+                }
+            }
+
+            // 4 · segmented timeline (real progress)
+            SegmentedTimeline {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 6
+                Layout.topMargin: 4
+                visible: Plasmoid.configuration.showProgressLine !== false
+                progress: root.countdownProgress
+                primaryColor: root.primaryTextColor
+                secondaryColor: root.secondaryTextColor
+                accentColor: root.accentColor
+                urgency: root.urgencyState
+                enableAnimations: root.enableAnimations
             }
         }
     }

@@ -1,6 +1,14 @@
+// System Monitor — com.mrudhuhas.systemmonitor
+// Standalone Nothing-inspired alternative to the dashboard's system module:
+// same typography, same segmented-dot indicator language, same red-accent
+// discipline. The SENSOR ARCHITECTURE below is unchanged.
+//
+// TRANSPARENCY CONTRACT (unchanged):
+//   Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
+//   preferredRepresentation: fullRepresentation   (no compactRepresentation)
+
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import org.kde.plasma.plasmoid
 import org.kde.plasma.core as PlasmaCore
 import org.kde.kirigami as Kirigami
@@ -11,324 +19,192 @@ import "components"
 PlasmoidItem {
     id: root
 
-    // Desktop widget sizing hints
-    Layout.minimumWidth: 160
-    Layout.minimumHeight: 140
-    Layout.preferredWidth: 220
-    Layout.preferredHeight: 220
+    Layout.minimumWidth: 170
+    Layout.minimumHeight: 130
+    Layout.preferredWidth: 240
+    Layout.preferredHeight: 190
 
-    // Force transparent background with no Plasma-provided container background
     Plasmoid.backgroundHints: PlasmaCore.Types.NoBackground
     preferredRepresentation: fullRepresentation
 
-    // -------------------------------------------------------------------------
-    // THEME & COLORS
-    // -------------------------------------------------------------------------
+    // ── Palette ─────────────────────────────────────────────────────────────
     readonly property color primaryTextColor: {
-        if (Plasmoid.configuration.customTextColor && Plasmoid.configuration.customTextColor !== "") {
-            return Plasmoid.configuration.customTextColor;
-        }
-        return Kirigami.Theme.textColor ? Kirigami.Theme.textColor : "#ECEFF4";
+        const c = Plasmoid.configuration.customTextColor
+        return (c && c !== "") ? c : (Kirigami.Theme.textColor || "#ECEFF4")
     }
-
     readonly property color secondaryTextColor: {
-        if (Plasmoid.configuration.customSecondaryColor && Plasmoid.configuration.customSecondaryColor !== "") {
-            return Plasmoid.configuration.customSecondaryColor;
-        }
-        return Kirigami.Theme.disabledTextColor ? Kirigami.Theme.disabledTextColor : "#7B889B";
+        const c = Plasmoid.configuration.customSecondaryColor
+        return (c && c !== "") ? c : (Kirigami.Theme.disabledTextColor || "#7B889B")
     }
-
     readonly property color accentColor: {
-        if (Plasmoid.configuration.accentColor && Plasmoid.configuration.accentColor !== "") {
-            return Plasmoid.configuration.accentColor;
-        }
-        return "#B72B2B"; // Restrained crimson
+        const c = Plasmoid.configuration.accentColor
+        return (c && c !== "") ? c : "#D71920"
     }
 
-    // -------------------------------------------------------------------------
-    // REFRESH INTERVAL
-    // -------------------------------------------------------------------------
+    readonly property string bodyFont: Kirigami.Theme.defaultFont.family
+    function _fontAvailable(f) { return f && f.length > 0 && Qt.fontFamilies().indexOf(f) !== -1 }
+    readonly property string displayFont: {
+        if (Plasmoid.configuration.useDisplayFont === false) return "monospace"
+        const want = (Plasmoid.configuration.displayFont || "").trim()
+        const cands = want.length ? [want, want.replace(" ", ""), want.replace("NDot", "Ndot")] : []
+        for (let i = 0; i < cands.length; ++i) if (root._fontAvailable(cands[i])) return cands[i]
+        return "monospace"
+    }
+
+    readonly property bool enableAnimations: Plasmoid.configuration.enableAnimations !== false
     readonly property int sensorUpdateIntervalMs: Math.max(1000, (Plasmoid.configuration.updateInterval || 1) * 1000)
 
-    // -------------------------------------------------------------------------
-    // NATIVE PLASMA 6 SENSORS (KSYSTEMSTATS)
-    // -------------------------------------------------------------------------
-    // 1. CPU Sensor (Aggregate total usage 0 - 100%)
-    Sensors.Sensor {
-        id: cpuSensor
-        sensorId: "cpu/all/usage"
-        updateRateLimit: root.sensorUpdateIntervalMs
-    }
+    // ── Sensors (UNCHANGED) ─────────────────────────────────────────────────
+    Sensors.Sensor { id: cpuSensor;       sensorId: "cpu/all/usage";               updateRateLimit: root.sensorUpdateIntervalMs }
+    Sensors.Sensor { id: ramUsedSensor;   sensorId: "memory/physical/used";        updateRateLimit: root.sensorUpdateIntervalMs }
+    Sensors.Sensor { id: ramTotalSensor;  sensorId: "memory/physical/total";       updateRateLimit: root.sensorUpdateIntervalMs }
+    Sensors.Sensor { id: ramPercentSensor;sensorId: "memory/physical/usedPercent"; updateRateLimit: root.sensorUpdateIntervalMs }
+    Sensors.Sensor { id: netDownSensor;   sensorId: "network/all/download";        updateRateLimit: root.sensorUpdateIntervalMs }
+    Sensors.Sensor { id: netUpSensor;     sensorId: "network/all/upload";          updateRateLimit: root.sensorUpdateIntervalMs }
 
-    // 2. RAM Sensors (Used bytes, Total bytes, Used percentage)
-    Sensors.Sensor {
-        id: ramUsedSensor
-        sensorId: "memory/physical/used"
-        updateRateLimit: root.sensorUpdateIntervalMs
-    }
-
-    Sensors.Sensor {
-        id: ramTotalSensor
-        sensorId: "memory/physical/total"
-        updateRateLimit: root.sensorUpdateIntervalMs
-    }
-
-    Sensors.Sensor {
-        id: ramPercentSensor
-        sensorId: "memory/physical/usedPercent"
-        updateRateLimit: root.sensorUpdateIntervalMs
-    }
-
-    // 3. Network Sensors (Aggregate download and upload throughput in bytes/s)
-    Sensors.Sensor {
-        id: netDownSensor
-        sensorId: "network/all/download"
-        updateRateLimit: root.sensorUpdateIntervalMs
-    }
-
-    Sensors.Sensor {
-        id: netUpSensor
-        sensorId: "network/all/upload"
-        updateRateLimit: root.sensorUpdateIntervalMs
-    }
-
-    // -------------------------------------------------------------------------
-    // NORMALIZED DATA PROPERTIES
-    // -------------------------------------------------------------------------
     readonly property real cpuPercentage: {
-        let val = Number(cpuSensor.value);
-        if (isNaN(val) || val < 0) return 0.0;
-        return Math.min(100.0, val);
+        let v = Number(cpuSensor.value)
+        return (isNaN(v) || v < 0) ? 0.0 : Math.min(100.0, v)
     }
-
     readonly property real ramPercentage: {
-        let pct = Number(ramPercentSensor.value);
-        if (!isNaN(pct) && pct > 0) {
-            return Math.min(100.0, pct);
-        }
-        // Fallback calculation: used / total * 100
-        let used = Number(ramUsedSensor.value);
-        let total = Number(ramTotalSensor.value);
-        if (!isNaN(used) && !isNaN(total) && total > 0) {
-            return Math.min(100.0, (used / total) * 100.0);
-        }
-        return 0.0;
+        let pct = Number(ramPercentSensor.value)
+        if (!isNaN(pct) && pct > 0) return Math.min(100.0, pct)
+        let used = Number(ramUsedSensor.value), total = Number(ramTotalSensor.value)
+        if (!isNaN(used) && !isNaN(total) && total > 0) return Math.min(100.0, (used / total) * 100.0)
+        return 0.0
     }
+    readonly property real ramUsedBytes:  { let v = Number(ramUsedSensor.value);  return (!isNaN(v) && v > 0) ? v : 0 }
+    readonly property real ramTotalBytes: { let v = Number(ramTotalSensor.value); return (!isNaN(v) && v > 0) ? v : 0 }
+    readonly property real netDownBytesPerSec: { let v = Number(netDownSensor.value); return (!isNaN(v) && v > 0) ? v : 0.0 }
+    readonly property real netUpBytesPerSec:   { let v = Number(netUpSensor.value);   return (!isNaN(v) && v > 0) ? v : 0.0 }
 
-    readonly property real ramUsedBytes: {
-        let val = Number(ramUsedSensor.value);
-        return (!isNaN(val) && val > 0) ? val : 0;
-    }
-
-    readonly property real ramTotalBytes: {
-        let val = Number(ramTotalSensor.value);
-        return (!isNaN(val) && val > 0) ? val : 0;
-    }
-
-    readonly property real netDownBytesPerSec: {
-        let val = Number(netDownSensor.value);
-        return (!isNaN(val) && val > 0) ? val : 0.0;
-    }
-
-    readonly property real netUpBytesPerSec: {
-        let val = Number(netUpSensor.value);
-        return (!isNaN(val) && val > 0) ? val : 0.0;
-    }
-
-    // -------------------------------------------------------------------------
-    // WARNING STATES
-    // -------------------------------------------------------------------------
     readonly property bool isCpuWarning: Plasmoid.configuration.enableWarningAccent &&
         (root.cpuPercentage >= (Plasmoid.configuration.cpuWarningThreshold || 80))
-
     readonly property bool isRamWarning: Plasmoid.configuration.enableWarningAccent &&
         (root.ramPercentage >= (Plasmoid.configuration.ramWarningThreshold || 85))
 
-    // -------------------------------------------------------------------------
-    // FORMATTING HELPERS
-    // -------------------------------------------------------------------------
     function formatBytes(bytes) {
-        if (typeof bytes !== "number" || isNaN(bytes) || bytes <= 0) {
-            return "--";
-        }
-        const gb = bytes / (1024 * 1024 * 1024);
-        if (gb >= 1.0) {
-            return gb.toFixed(1) + " GB";
-        }
-        const mb = bytes / (1024 * 1024);
-        return Math.round(mb) + " MB";
+        if (typeof bytes !== "number" || isNaN(bytes) || bytes <= 0) return "--"
+        const gb = bytes / (1024 * 1024 * 1024)
+        if (gb >= 1.0) return gb.toFixed(1) + " GB"
+        return Math.round(bytes / (1024 * 1024)) + " MB"
     }
 
-    // -------------------------------------------------------------------------
-    // FULL REPRESENTATION (DESKTOP WIDGET)
-    // -------------------------------------------------------------------------
+    // ── Presentation ────────────────────────────────────────────────────────
     fullRepresentation: Item {
-        id: desktopRepresentation
+        id: view
+        Layout.minimumWidth: 170
+        Layout.minimumHeight: 130
+        Layout.preferredWidth: 240
+        Layout.preferredHeight: 190
 
-        Layout.minimumWidth: 160
-        Layout.minimumHeight: 140
-        Layout.preferredWidth: 220
-        Layout.preferredHeight: 220
+        readonly property int labelFont: Plasmoid.configuration.metricLabelFontSize || 11
+        readonly property int valueFont: Plasmoid.configuration.metricValueFontSize || 13
+        readonly property int metaFont:  Plasmoid.configuration.secondaryFontSize || 10
+        readonly property int titleFont: Plasmoid.configuration.titleFontSize || 10
 
         ColumnLayout {
-            id: mainLayout
             anchors.fill: parent
-            spacing: 8
+            spacing: 10
 
-            // 1. TITLE (AoT Military HUD style)
+            // TITLE
             RowLayout {
                 visible: Plasmoid.configuration.showTitle
-                Layout.alignment: Qt.AlignHCenter
-                spacing: 6
-
-                Rectangle {
-                    width: 10
-                    height: 1
-                    color: (root.isCpuWarning || root.isRamWarning) ? root.accentColor : root.secondaryTextColor
-                    opacity: 0.5
-                    Layout.alignment: Qt.AlignVCenter
-                }
-
+                Layout.fillWidth: true
+                spacing: 8
                 Text {
-                    id: titleLabel
                     text: {
-                        let raw = Plasmoid.configuration.title || "SYSTEM STATUS";
-                        return Plasmoid.configuration.uppercaseTitle ? raw.toUpperCase() : raw;
+                        const raw = Plasmoid.configuration.title || "SYSTEM"
+                        return Plasmoid.configuration.uppercaseTitle ? raw.toUpperCase() : raw
                     }
-                    font.pixelSize: Plasmoid.configuration.titleFontSize || 10
-                    font.capitalization: Plasmoid.configuration.uppercaseTitle ? Font.AllUppercase : Font.MixedCase
-                    font.letterSpacing: 1.8
+                    font.family: root.bodyFont
+                    font.pixelSize: view.titleFont
+                    font.letterSpacing: 3.0
                     font.bold: true
                     color: (root.isCpuWarning || root.isRamWarning) ? root.accentColor : root.secondaryTextColor
-                    horizontalAlignment: Text.AlignHCenter
                 }
-
                 Rectangle {
-                    width: 10
+                    Layout.fillWidth: true
                     height: 1
-                    color: (root.isCpuWarning || root.isRamWarning) ? root.accentColor : root.secondaryTextColor
-                    opacity: 0.5
+                    color: root.secondaryTextColor
+                    opacity: 0.15
                     Layout.alignment: Qt.AlignVCenter
                 }
             }
 
-            // 2. CPU SECTION
-            ColumnLayout {
+            // CPU
+            MetricRow {
                 visible: Plasmoid.configuration.showCpu
                 Layout.fillWidth: true
-                spacing: 2
-
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Text {
-                        text: "CPU"
-                        font.pixelSize: Plasmoid.configuration.metricLabelFontSize || 11
-                        font.bold: true
-                        font.letterSpacing: 1.0
-                        color: root.isCpuWarning ? root.accentColor : root.primaryTextColor
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Text {
-                        visible: Plasmoid.configuration.showPercentages
-                        text: Math.round(root.cpuPercentage) + "%"
-                        font.pixelSize: Plasmoid.configuration.metricValueFontSize || 12
-                        font.bold: true
-                        font.letterSpacing: 0.5
-                        color: root.isCpuWarning ? root.accentColor : root.primaryTextColor
-                    }
-                }
-
-                MetricBar {
-                    Layout.fillWidth: true
-                    percentage: root.cpuPercentage
-                    barColor: root.primaryTextColor
-                    trackColor: root.secondaryTextColor
-                    accentColor: root.accentColor
-                    barHeight: Plasmoid.configuration.barThickness || 2
-                    isWarning: root.isCpuWarning
-                    enableAnimations: Plasmoid.configuration.enableAnimations
-                }
+                label: "CPU"
+                percentage: root.cpuPercentage
+                showPercent: Plasmoid.configuration.showPercentages
+                warning: root.isCpuWarning
+                primaryColor: root.primaryTextColor
+                secondaryColor: root.secondaryTextColor
+                accentColor: root.accentColor
+                bodyFont: root.bodyFont
+                displayFont: root.displayFont
+                labelSize: view.labelFont
+                valueSize: view.valueFont
+                enableAnimations: root.enableAnimations
             }
 
-            // 3. RAM SECTION
+            // RAM
             ColumnLayout {
                 visible: Plasmoid.configuration.showRam
                 Layout.fillWidth: true
                 spacing: 2
-
-                RowLayout {
+                MetricRow {
                     Layout.fillWidth: true
-
-                    Text {
-                        text: "RAM"
-                        font.pixelSize: Plasmoid.configuration.metricLabelFontSize || 11
-                        font.bold: true
-                        font.letterSpacing: 1.0
-                        color: root.isRamWarning ? root.accentColor : root.primaryTextColor
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Text {
-                        visible: Plasmoid.configuration.showPercentages
-                        text: Math.round(root.ramPercentage) + "%"
-                        font.pixelSize: Plasmoid.configuration.metricValueFontSize || 12
-                        font.bold: true
-                        font.letterSpacing: 0.5
-                        color: root.isRamWarning ? root.accentColor : root.primaryTextColor
-                    }
+                    label: "RAM"
+                    percentage: root.ramPercentage
+                    showPercent: Plasmoid.configuration.showPercentages
+                    warning: root.isRamWarning
+                    primaryColor: root.primaryTextColor
+                    secondaryColor: root.secondaryTextColor
+                    accentColor: root.accentColor
+                    bodyFont: root.bodyFont
+                    displayFont: root.displayFont
+                    labelSize: view.labelFont
+                    valueSize: view.valueFont
+                    enableAnimations: root.enableAnimations
                 }
-
-                // RAM Used / Total Subtitle
                 Text {
                     visible: Plasmoid.configuration.showRamUsedTotal && root.ramTotalBytes > 0
-                    text: root.formatBytes(root.ramUsedBytes) + " / " + root.formatBytes(root.ramTotalBytes)
-                    font.pixelSize: Plasmoid.configuration.secondaryFontSize || 10
+                    text: root.formatBytes(root.ramUsedBytes) + "  /  " + root.formatBytes(root.ramTotalBytes)
+                    font.family: root.bodyFont
+                    font.pixelSize: view.metaFont
                     font.letterSpacing: 0.5
                     color: root.secondaryTextColor
-                    opacity: 0.85
-                }
-
-                MetricBar {
-                    Layout.fillWidth: true
-                    percentage: root.ramPercentage
-                    barColor: root.primaryTextColor
-                    trackColor: root.secondaryTextColor
-                    accentColor: root.accentColor
-                    barHeight: Plasmoid.configuration.barThickness || 2
-                    isWarning: root.isRamWarning
-                    enableAnimations: Plasmoid.configuration.enableAnimations
+                    opacity: 0.8
+                    Layout.leftMargin: 2
                 }
             }
 
-            // 4. NETWORK SECTION
+            // NETWORK
             ColumnLayout {
                 visible: Plasmoid.configuration.showNetwork
                 Layout.fillWidth: true
                 spacing: 4
-                Layout.topMargin: 2
 
                 RowLayout {
                     Layout.fillWidth: true
-
+                    spacing: 8
                     Text {
-                        text: "NETWORK"
-                        font.pixelSize: Plasmoid.configuration.metricLabelFontSize || 11
+                        text: "NET"
+                        font.family: root.bodyFont
+                        font.pixelSize: view.labelFont
                         font.bold: true
-                        font.letterSpacing: 1.0
-                        color: root.primaryTextColor
+                        font.letterSpacing: 2.0
+                        color: root.secondaryTextColor
                     }
-
                     Rectangle {
                         Layout.fillWidth: true
                         height: 1
                         color: root.secondaryTextColor
-                        opacity: 0.2
+                        opacity: 0.15
                         Layout.alignment: Qt.AlignVCenter
-                        Layout.leftMargin: 4
                     }
                 }
 
@@ -339,10 +215,12 @@ PlasmoidItem {
                     textColor: root.primaryTextColor
                     secondaryColor: root.secondaryTextColor
                     accentColor: root.accentColor
-                    fontSize: Plasmoid.configuration.secondaryFontSize || 10
-                    enableAnimations: Plasmoid.configuration.enableAnimations
+                    fontSize: view.metaFont
+                    enableAnimations: root.enableAnimations
                 }
             }
+
+            Item { Layout.fillHeight: true }
         }
     }
 }

@@ -105,6 +105,12 @@
         <entry name="accentColor" type="String">
             <default>#D71920</default>
         </entry>
+        <entry name="useDisplayFont" type="Bool">
+            <default>true</default>
+        </entry>
+        <entry name="displayFont" type="String">
+            <default>NDot 57</default>
+        </entry>
         <entry name="customTextColor" type="String">
             <default></default>
         </entry>

@@ -7,7 +7,6 @@ Kirigami.FormLayout {
     id: generalPage
 
     // KConfig property bindings
-    property alias cfg_title: titleField.text
     property alias cfg_targetDate: targetDateField.text
     property alias cfg_targetTime: targetTimeField.text
     property alias cfg_startDate: startDateField.text
@@ -45,16 +44,9 @@ Kirigami.FormLayout {
     // COUNTDOWN OBJECTIVE
     // -------------------------------------------------------------------------
     TextField {
-        id: titleField
-        Kirigami.FormData.label: i18n("Countdown Title:")
-        placeholderText: "e.g., MISSION ENDS IN, DEEP WORK, NEXT OBJECTIVE"
-        Layout.fillWidth: true
-    }
-
-    TextField {
         id: completedTextField
-        Kirigami.FormData.label: i18n("Completed Text:")
-        placeholderText: "e.g., OBJECTIVE COMPLETE, TIME REACHED"
+        Kirigami.FormData.label: i18n("Completed text:")
+        placeholderText: "e.g., COMPLETE, TIME REACHED"
         Layout.fillWidth: true
     }
 

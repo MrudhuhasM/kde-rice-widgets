@@ -7,13 +7,13 @@
             }
         ],
         "Category": "System Information",
-        "Description": "Minimal Attack on Titan-inspired military desktop system monitor",
+        "Description": "Nothing-inspired transparent desktop system monitor (CPU / RAM / network)",
         "Icon": "utilities-system-monitor",
         "Id": "com.mrudhuhas.systemmonitor",
         "License": "MIT",
         "Name": "System Monitor",
-        "Version": "1.0.0",
-        "Website": "https://github.com/mrudhuhas/rice-plasma-widgets"
+        "Version": "1.1.0",
+        "Website": "https://github.com/MrudhuhasM/kde-rice-widgets"
     },
     "KPackageStructure": "Plasma/Applet",
     "X-Plasma-API-Minimum-Version": "6.0"

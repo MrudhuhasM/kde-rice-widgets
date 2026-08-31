@@ -4,9 +4,8 @@ import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
 Kirigami.FormLayout {
-    id: generalPage
+    id: page
 
-    // KConfig property bindings
     property alias cfg_title: titleField.text
     property alias cfg_showTitle: showTitleCheck.checked
     property alias cfg_uppercaseTitle: uppercaseTitleCheck.checked
@@ -15,54 +14,43 @@ Kirigami.FormLayout {
     property alias cfg_resultPrecision: resultPrecisionSpin.value
     property alias cfg_enableAnimations: enableAnimationsCheck.checked
 
-    // -------------------------------------------------------------------------
-    // TITLE & DISPLAY
-    // -------------------------------------------------------------------------
     Kirigami.Separator {
         Kirigami.FormData.isSection: true
-        Kirigami.FormData.label: i18n("Header & Title")
+        Kirigami.FormData.label: i18n("Identifier")
     }
 
     CheckBox {
         id: showTitleCheck
-        Kirigami.FormData.label: i18n("Show Title:")
-        text: i18n("Display header label above calculator expression")
+        Kirigami.FormData.label: i18n("Show identifier:")
+        text: i18n("Small label above the expression")
     }
-
     TextField {
         id: titleField
-        Kirigami.FormData.label: i18n("Title Text:")
-        placeholderText: "e.g., FIELD CALCULATOR, INSTRUMENT CALC"
+        Kirigami.FormData.label: i18n("Text:")
+        placeholderText: "CALC"
         Layout.fillWidth: true
         enabled: showTitleCheck.checked
     }
-
     CheckBox {
         id: uppercaseTitleCheck
-        Kirigami.FormData.label: i18n("Uppercase Title:")
-        text: i18n("Format header title in ALL CAPS (AoT military aesthetic)")
+        Kirigami.FormData.label: i18n("Uppercase:")
+        text: i18n("Force ALL CAPS")
         enabled: showTitleCheck.checked
     }
 
-    // -------------------------------------------------------------------------
-    // CALCULATION & ENGINE
-    // -------------------------------------------------------------------------
     Kirigami.Separator {
         Kirigami.FormData.isSection: true
-        Kirigami.FormData.label: i18n("Calculation Engine")
+        Kirigami.FormData.label: i18n("Engine")
     }
 
     SpinBox {
         id: resultPrecisionSpin
-        Kirigami.FormData.label: i18n("Result Precision (Significant Digits):")
+        Kirigami.FormData.label: i18n("Result precision (significant digits):")
         from: 4
         to: 16
         value: 10
     }
 
-    // -------------------------------------------------------------------------
-    // HISTORY & ANIMATIONS
-    // -------------------------------------------------------------------------
     Kirigami.Separator {
         Kirigami.FormData.isSection: true
         Kirigami.FormData.label: i18n("History & Motion")
@@ -70,22 +58,20 @@ Kirigami.FormLayout {
 
     CheckBox {
         id: showHistoryCheck
-        Kirigami.FormData.label: i18n("Calculation History:")
-        text: i18n("Show small in-memory history of recent calculations below keypad")
+        Kirigami.FormData.label: i18n("History:")
+        text: i18n("Keep a small recall stack beneath the keypad")
     }
-
     SpinBox {
         id: maxHistorySpin
-        Kirigami.FormData.label: i18n("Max History Entries:")
+        Kirigami.FormData.label: i18n("Max entries:")
         from: 1
         to: 10
         value: 5
         enabled: showHistoryCheck.checked
     }
-
     CheckBox {
         id: enableAnimationsCheck
-        Kirigami.FormData.label: i18n("Enable Animations:")
-        text: i18n("Animate keypad clicks and result transitions")
+        Kirigami.FormData.label: i18n("Animations:")
+        text: i18n("Result transition, key press feedback, caret blink")
     }
 }

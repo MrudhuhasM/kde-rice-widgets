@@ -9,7 +9,7 @@
       <default>true</default>
     </entry>
     <entry name="title" type="String">
-      <default>FIELD CALCULATOR</default>
+      <default>CALC</default>
     </entry>
     <entry name="uppercaseTitle" type="Bool">
       <default>true</default>
@@ -27,7 +27,7 @@
       <default>true</default>
     </entry>
     <entry name="accentColor" type="String">
-      <default>#B72B2B</default>
+      <default>#D71920</default>
     </entry>
     <entry name="customTextColor" type="String">
       <default></default>
@@ -35,17 +35,23 @@
     <entry name="customSecondaryColor" type="String">
       <default></default>
     </entry>
+    <entry name="useDisplayFont" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="displayFont" type="String">
+      <default>NDot 57</default>
+    </entry>
     <entry name="titleFontSize" type="Int">
       <default>10</default>
     </entry>
     <entry name="expressionFontSize" type="Int">
-      <default>14</default>
+      <default>15</default>
     </entry>
     <entry name="resultFontSize" type="Int">
-      <default>28</default>
+      <default>44</default>
     </entry>
     <entry name="buttonFontSize" type="Int">
-      <default>14</default>
+      <default>16</default>
     </entry>
   </group>
 </kcfg>

@@ -42,7 +42,13 @@
       <default>1</default>
     </entry>
     <entry name="accentColor" type="String">
-      <default>#b72b2b</default>
+      <default>#D71920</default>
+    </entry>
+    <entry name="useDisplayFont" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="displayFont" type="String">
+      <default>NDot 57</default>
     </entry>
     <entry name="customTextColor" type="String">
       <default></default>
@@ -54,7 +60,7 @@
       <default>10</default>
     </entry>
     <entry name="countdownFontSize" type="Int">
-      <default>28</default>
+      <default>34</default>
     </entry>
     <entry name="detailsFontSize" type="Int">
       <default>10</default>

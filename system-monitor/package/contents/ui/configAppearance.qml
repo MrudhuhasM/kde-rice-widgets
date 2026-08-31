@@ -8,6 +8,8 @@ Kirigami.FormLayout {
 
     // KConfig property bindings
     property alias cfg_accentColor: accentColorField.text
+    property alias cfg_useDisplayFont: useDisplayFontCheck.checked
+    property alias cfg_displayFont: displayFontField.text
     property alias cfg_customTextColor: customTextColorField.text
     property alias cfg_customSecondaryColor: customSecondaryColorField.text
     property alias cfg_titleFontSize: titleFontSizeSpin.value
@@ -105,11 +107,32 @@ Kirigami.FormLayout {
     }
 
     // -------------------------------------------------------------------------
+    // DISPLAY FONT
+    // -------------------------------------------------------------------------
+    Kirigami.Separator {
+        Kirigami.FormData.isSection: true
+        Kirigami.FormData.label: i18n("Display font (percentage values)")
+    }
+
+    CheckBox {
+        id: useDisplayFontCheck
+        Kirigami.FormData.label: i18n("Use display font:")
+        text: i18n("Falls back to monospace when the family is not installed")
+    }
+    TextField {
+        id: displayFontField
+        Kirigami.FormData.label: i18n("Family:")
+        placeholderText: "NDot 57"
+        Layout.fillWidth: true
+        enabled: useDisplayFontCheck.checked
+    }
+
+    // -------------------------------------------------------------------------
     // TYPOGRAPHY & SIZES
     // -------------------------------------------------------------------------
     Kirigami.Separator {
         Kirigami.FormData.isSection: true
-        Kirigami.FormData.label: i18n("Typography & Bar Thickness")
+        Kirigami.FormData.label: i18n("Typography")
     }
 
     SpinBox {

@@ -7,6 +7,8 @@ Kirigami.FormLayout {
     id: page
 
     property alias cfg_accentColor: accentColorField.text
+    property alias cfg_useDisplayFont: useDisplayFontCheck.checked
+    property alias cfg_displayFont: displayFontField.text
     property alias cfg_customTextColor: customTextColorField.text
     property alias cfg_customSecondaryColor: customSecondaryColorField.text
     property alias cfg_metaFontSize: metaFontSize.value
@@ -62,6 +64,32 @@ Kirigami.FormLayout {
             Layout.fillWidth: true
         }
         Button { text: i18n("Clear"); onClicked: customSecondaryColorField.text = "" }
+    }
+
+    Kirigami.Separator {
+        Kirigami.FormData.isSection: true
+        Kirigami.FormData.label: i18n("Display font (clock digits)")
+    }
+
+    CheckBox {
+        id: useDisplayFontCheck
+        Kirigami.FormData.label: i18n("Use display font:")
+        text: i18n("Falls back to monospace when the family is not installed")
+    }
+    TextField {
+        id: displayFontField
+        Kirigami.FormData.label: i18n("Family:")
+        placeholderText: "NDot 57"
+        Layout.fillWidth: true
+        enabled: useDisplayFontCheck.checked
+    }
+    Label {
+        Layout.fillWidth: true
+        Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+        wrapMode: Text.WordWrap
+        opacity: 0.7
+        font: Kirigami.Theme.smallFont
+        text: i18n("NDot / dot-matrix fonts are not bundled. Only the clock digits use it; ':' is drawn geometrically.")
     }
 
     Kirigami.Separator {

@@ -70,6 +70,23 @@ PlasmoidItem {
     }
     readonly property bool enableAnimations: Plasmoid.configuration.enableAnimations !== false
     readonly property bool enableTextShadow: Plasmoid.configuration.enableTextShadow === true
+
+    // ── Typography: DISPLAY font (dot-matrix, digits only) + BODY font ────────
+    readonly property string bodyFont: Kirigami.Theme.defaultFont.family
+    function _fontAvailable(fam) {
+        return fam && fam.length > 0 && Qt.fontFamilies().indexOf(fam) !== -1
+    }
+    readonly property string displayFont: {
+        if (Plasmoid.configuration.useDisplayFont === false) return "monospace"
+        const want = (Plasmoid.configuration.displayFont || "").trim()
+        const candidates = want.length > 0
+            ? [want, want.replace(" ", ""), want.replace("NDot", "Ndot")]
+            : []
+        for (let i = 0; i < candidates.length; ++i)
+            if (root._fontAvailable(candidates[i])) return candidates[i]
+        return "monospace"   // graceful fallback keeps digit alignment
+    }
+    readonly property bool displayFontActive: root.displayFont !== "monospace"
     readonly property int sectionSpacing: Plasmoid.configuration.spacingDensity === 0 ? 10 : 16
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -176,6 +193,8 @@ PlasmoidItem {
                 accentColor:    root.accentColor
                 enableAnimations: root.enableAnimations
                 enableShadow:   root.enableTextShadow
+                displayFont:    root.displayFont
+                bodyFont:       root.bodyFont
                 showWeekday:    Plasmoid.configuration.showWeekday !== false
                 showDate:       Plasmoid.configuration.showDate !== false
                 showSeconds:    Plasmoid.configuration.showSeconds === true
