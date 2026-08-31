@@ -1,0 +1,23 @@
+{
+    "KPlugin": {
+        "Id": "com.mrudhuhas.dashboard",
+        "Name": "Dashboard",
+        "Name[en]": "Dashboard",
+        "Description": "Unified transparent desktop dashboard: clock, MPRIS media, system metrics",
+        "Description[en]": "Unified transparent desktop dashboard: clock, MPRIS media, system metrics",
+        "Icon": "utilities-system-monitor",
+        "Category": "Utilities",
+        "Authors": [
+            {
+                "Email": "",
+                "Name": "mrudhuhas"
+            }
+        ],
+        "License": "MIT",
+        "Version": "1.0",
+        "Website": "",
+        "EnabledByDefault": true
+    },
+    "KPackageStructure": "Plasma/Applet",
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
