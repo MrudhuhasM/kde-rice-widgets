@@ -6,25 +6,27 @@
  * falls back to org.kde.plasma.desktop for everything else, so installing it
  * changes ONLY the lock screen.
  *
- * Authentication uses the `authenticator` context object provided by
- * kscreenlocker (org.kde.kscreenlocker / PamAuthenticators):
- *   authenticator.startAuthenticating()   — open / refresh the PAM conversation
- *   authenticator.respond(password)        — submit the secret
- *   signals: succeeded(), failed(kind), errorMessageChanged(), infoMessageChanged(),
- *            promptChanged(), promptForSecretChanged()
+ * Authentication — documented Plasma 6 flow via the `authenticator` context
+ * object (org.kde.kscreenlocker / PamAuthenticators):
+ *   authenticator.startAuthenticating()   — open the PAM conversation (once, on reveal)
+ *   authenticator.respond(secret)          — submit the secret against that conversation
+ *   signals: onPromptChanged, onPromptForSecretChanged, onInfoMessageChanged,
+ *            onErrorMessageChanged, onSucceeded, onFailed
  * The password string only ever travels to authenticator.respond(); it is never
  * logged, printed, or persisted.
+ *
+ * V1 is single-screen. kscreenlocker still creates one view per screen, so the
+ * clock + prompt simply appear on every screen; per-screen activation can be
+ * revisited later. Layout is anchor/relative-sized so that stays possible.
  *
  * The wallpaper is supplied and positioned behind this item by kscreenlocker
  * (the `wallpaper` context property); we only draw a subtle overlay on top.
  */
 
 import QtQuick
-import QtQuick.Window
 import QtQuick.Layouts
 
 import org.kde.kirigami as Kirigami
-import org.kde.kscreenlocker as ScreenLocker
 import org.kde.plasma.private.keyboardindicator as KeyboardIndicator
 
 import "components"
@@ -73,13 +75,12 @@ Item {
 
     // --- reveal / idle state ---------------------------------------------
     property bool uiVisible: false
-    property bool activeScreen: true
 
     function reveal() {
         root.uiVisible = true
         fadeoutTimer.restart()
-        if (root.activeScreen)
-            passwordField.forceActiveFocus()
+        passwordField.forceActiveFocus()
+        root._ensureAuthStarted()
     }
 
     onClearPassword: {
@@ -99,17 +100,34 @@ Item {
         return parts.join("   •   ")
     }
 
+    // ------------------------------------------------------------------
+    // AUTHENTICATION  (documented flow — no per-second heartbeat)
+    // ------------------------------------------------------------------
+    property bool _authStarted: false
+
+    function _ensureAuthStarted() {
+        if (root._authStarted)
+            return
+        root._authStarted = true
+        authenticator.startAuthenticating()
+    }
+
+    // Restart the conversation after a failure so the next attempt has a fresh
+    // PAM transaction to respond to.
+    function _restartAuth() {
+        root._authStarted = true
+        authenticator.startAuthenticating()
+    }
+
     function submit(password) {
         if (!password || password.length === 0)
             return
+        // Respond against the conversation opened on reveal; do not re-open it here.
+        root._ensureAuthStarted()
         passwordField.busy = true
-        authenticator.startAuthenticating()
         authenticator.respond(password)
     }
 
-    // ------------------------------------------------------------------
-    // AUTHENTICATION
-    // ------------------------------------------------------------------
     Connections {
         target: authenticator
 
@@ -124,7 +142,7 @@ Item {
             root.authError = true
             root.authMessage = i18nd("plasma_shell_org.kde.plasma.desktop", "Unlocking failed")
             root.clearPassword()
-            authenticator.startAuthenticating()
+            root._restartAuth()
             clearErrorTimer.restart()
         }
 
@@ -162,12 +180,6 @@ Item {
     }
 
     Timer {
-        id: heartbeat
-        interval: 1000; repeat: true
-        running: root.uiVisible
-        onTriggered: authenticator.startAuthenticating()
-    }
-    Timer {
         id: clearErrorTimer
         interval: 3500
         onTriggered: { root.authMessage = ""; root.authError = false }
@@ -176,20 +188,6 @@ Item {
         id: fadeoutTimer
         interval: 20000
         onTriggered: if (passwordField.text.length === 0) root.uiVisible = false
-    }
-
-    onUiVisibleChanged: if (uiVisible) authenticator.startAuthenticating()
-
-    // Multi-screen: kscreenlocker creates one view per screen; only the screen
-    // under the cursor shows the auth block.
-    ScreenLocker.ActiveScreenMonitor {
-        id: screenMonitor
-        lockscreenState: ScreenLocker.LockscreenState
-        window: root.Window.window
-        onActiveChanged: {
-            root.activeScreen = active
-            if (!active) root.uiVisible = false
-        }
     }
 
     KeyboardIndicator.KeyState {
@@ -267,14 +265,13 @@ Item {
             timePixelSize: Math.max(56, Math.min(120, Math.round(parent.height * 0.11)))
         }
 
-        // AUTH — lower centre, active screen only
+        // AUTH — lower centre
         ColumnLayout {
             id: authBlock
             width: Math.min(parent.width - Kirigami.Units.gridUnit * 4, 320)
             anchors.horizontalCenter: parent.horizontalCenter
             y: Math.round(parent.height * 0.58)
             spacing: Kirigami.Units.largeSpacing
-            visible: root.activeScreen
             opacity: root.uiVisible ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Kirigami.Units.longDuration } }
 
@@ -347,7 +344,7 @@ Item {
             Item { Layout.fillWidth: true }
 
             ActionRow {
-                visible: root.opt("showActions", true) && root.activeScreen
+                visible: root.opt("showActions", true)
                 Layout.preferredWidth: parent.width * 0.45
                 primaryColor: root.primaryColor
                 secondaryColor: root.secondaryColor
@@ -359,8 +356,7 @@ Item {
     }
 
     Component.onCompleted: {
-        // Field holds focus even while hidden, so the first keystroke after
-        // wake lands in it (matches the stock locker).
+        // Field holds focus from the start so the first keystroke lands in it.
         passwordField.forceActiveFocus()
     }
 }

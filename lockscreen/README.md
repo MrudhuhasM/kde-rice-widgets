@@ -43,8 +43,8 @@ Uses the `authenticator` context object provided by `kscreenlocker`
 
 | Call / signal | Use |
 | --- | --- |
-| `authenticator.startAuthenticating()` | open / refresh the PAM conversation (on reveal + 1 s heartbeat) |
-| `authenticator.respond(password)` | submit the secret on Enter / unlock |
+| `authenticator.startAuthenticating()` | open the PAM conversation — **once**, when the UI is first revealed (and again after a failure) |
+| `authenticator.respond(password)` | submit the secret against that conversation on Enter / unlock |
 | `onSucceeded()` | `Qt.quit()` — hands back to the normal Plasma unlock flow |
 | `onFailed(kind)` (`kind === 0`) | wrong password → red `UNLOCKING FAILED`, clear field, restart auth |
 | `onErrorMessageChanged` / `onInfoMessageChanged` / `onPromptChanged` / `onPromptForSecretChanged` | live PAM conversation text (expired password, fingerprint prompts, lock-out delays, …) |
