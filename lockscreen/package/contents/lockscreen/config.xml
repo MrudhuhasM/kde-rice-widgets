@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+      http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name=""/>
+
+  <group name="General">
+    <!-- Kept for compatibility with the stock lockscreen config UI / other tooling -->
+    <entry name="alwaysShowClock" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="hideClockWhenIdle" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="showMediaControls" type="Bool">
+      <default>false</default>
+    </entry>
+
+    <!-- Nothing Lock options -->
+    <entry name="use24Hour" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showSeconds" type="Bool">
+      <default>false</default>
+    </entry>
+    <entry name="showDate" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showUserName" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showBattery" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="showActions" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="useDisplayFont" type="Bool">
+      <default>true</default>
+    </entry>
+    <entry name="displayFont" type="String">
+      <default>Ndot</default>
+    </entry>
+    <entry name="accentColor" type="String">
+      <default>#D71920</default>
+    </entry>
+    <entry name="overlayOpacity" type="Double">
+      <default>0.22</default>
+    </entry>
+  </group>
+</kcfg>

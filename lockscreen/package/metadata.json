@@ -1,0 +1,19 @@
+{
+    "KPackageStructure": "Plasma/Shell",
+    "KPlugin": {
+        "Id": "com.mrudhuhas.nothinglock",
+        "Name": "Nothing Lock",
+        "Description": "Minimal Nothing-inspired Plasma 6 lock screen (shell package overriding only the lockscreen)",
+        "Authors": [
+            { "Name": "Mrudhuhas", "Email": "mrudhuhas@outlook.com" }
+        ],
+        "Category": "",
+        "Icon": "system-lock-screen",
+        "License": "MIT",
+        "Version": "1.0.0",
+        "Website": "https://github.com/MrudhuhasM/kde-rice-widgets"
+    },
+    "X-KDE-ParentApp": "org.kde.plasmashell",
+    "X-Plasma-APIVersion": "2",
+    "X-Plasma-FallbackPackage": "org.kde.plasma.desktop"
+}
